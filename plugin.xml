@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<plugin id="tv.megacubo.pip" version="0.0.3" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+    <name>PIPPlugin</name>
+    <js-module name="PIPPlugin" src="www/PIPPlugin.js">
+        <clobbers target="PictureInPicture" />
+    </js-module>
+    <platform name="android">
+        <edit-config file="AndroidManifest.xml" mode="merge" target="/manifest/application/activity">
+            <activity android:supportsPictureInPicture="true" android:launchMode="singleTask" android:resizeableActivity="true" />
+        </edit-config>
+        <config-file parent="/*" target="res/xml/config.xml">
+            <feature name="PIPPlugin">
+                <param name="android-package" value="tv.megacubo.pip.PIPPlugin" />
+            </feature>
+        </config-file>
+        <config-file parent="/*" target="AndroidManifest.xml"></config-file>
+        <source-file src="src/android/PIPPlugin.java" target-dir="src/tv/megacubo/pip/PIPPlugin" />
+    </platform>
+</plugin>
