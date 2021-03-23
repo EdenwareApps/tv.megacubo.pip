@@ -40,12 +40,7 @@ public class PIPPlugin extends CordovaPlugin {
         if(action.equals("enter")){
             Double width = args.getDouble(0);
             Double height = args.getDouble(1);
-            cordova.getThreadPool().execute(new Runnable() {
-                @Override
-                public void run() {
-                    enterPip(width, height, callbackContext);
-                }
-            });
+            enterPip(width, height, callbackContext);
             return true;
         } else if(action.equals("isPip")){
             this.isPip(callbackContext);
@@ -53,8 +48,8 @@ public class PIPPlugin extends CordovaPlugin {
         } else if(action.equals("onPipModeChanged")){
             if(callback == null){
                 callback = callbackContext; //save global callback for later callbacks
-                PluginResult pluginResult = new PluginResult(PluginResult.Status.NO_RESULT); //send no result to execute the callbacks later
-                pluginResult.setKeepCallback(true); // Keep callback
+                PluginResult result = new PluginResult(PluginResult.Status.NO_RESULT); //send no result to execute the callbacks later
+                result.setKeepCallback(true); // Keep callback
             }
             return true;
         } else if(action.equals("isPipModeSupported")){
