@@ -31,6 +31,8 @@ public class PIPPlugin extends CordovaPlugin {
 				Class.forName("android.app.PictureInPictureParams");
 			} catch(Exception e) {
 				hasPIPMode = false;
+                String stackTrace = Log.getStackTraceString(e);
+                Log.d(TAG, "hasPIPMode ERR " + stackTrace);
 			}
 		}
     }
@@ -94,7 +96,7 @@ public class PIPPlugin extends CordovaPlugin {
     private void enterPip(Double width, Double height, CallbackContext callbackContext) {
         try{
             this.initializePip();
-            if(pictureInPictureParamsBuilder != null){
+            if(pictureInPictureParamsBuilder != null) {
 				Activity activity = this.cordova.getActivity();
 				boolean active = activity.isInPictureInPictureMode(); //>= SDK 26 //Oreo
 				Log.d(TAG, "enterPip " + active);

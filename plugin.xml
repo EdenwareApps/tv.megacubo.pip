@@ -5,15 +5,18 @@
         <clobbers target="PictureInPicture" />
     </js-module>
     <platform name="android">
-        <edit-config file="AndroidManifest.xml" mode="merge" target="/manifest/application/activity">
-            <activity android:supportsPictureInPicture="true" android:launchMode="singleTask" android:resizeableActivity="true" />
-        </edit-config>
         <config-file parent="/*" target="res/xml/config.xml">
             <feature name="PIPPlugin">
                 <param name="android-package" value="tv.megacubo.pip.PIPPlugin" />
             </feature>
         </config-file>
-        <config-file parent="/*" target="AndroidManifest.xml"></config-file>
+        <edit-config file="AndroidManifest.xml" mode="merge" target="/manifest/application/activity">
+            <activity android:supportsPictureInPicture="true" android:launchMode="singleTask" android:resizeableActivity="true" />
+        </edit-config>
+        <custom-preference name="android-manifest/application/activity[@android:name='MainActivity']/@android:supportsPictureInPicture" value="true" />
+        <custom-preference name="android-manifest/application/activity[@android:name='MainActivity']/@android:configChanges" value="screenSize|smallestScreenSize|screenLayout|orientation" />
+        <custom-preference name="android-manifest/application/activity[@android:name='MainActivity']/@android:launchMode" value="singleTask" />
+        <custom-preference name="android-manifest/application/activity[@android:name='MainActivity']/@android:resizeableActivity" value="true" />
         <source-file src="src/android/PIPPlugin.java" target-dir="src/tv/megacubo/pip/PIPPlugin" />
     </platform>
 </plugin>
