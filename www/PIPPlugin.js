@@ -14,6 +14,9 @@ module.exports = (function (){
 	this.onPipModeChanged = function (success, error) {
 		exec(success, error, "PIPPlugin", "onPipModeChanged", [])
 	}
+	this.autoPIP = function (enable, width, height) {
+		exec(console.warn, console.error, "PIPPlugin", "autoPIP", [enable, width, height])
+	}
 	this.isPipModeSupported = function (success, error) {
 		exec(success, error, "PIPPlugin", "isPipModeSupported", [])
 	}

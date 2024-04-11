@@ -6,6 +6,7 @@ import android.app.Activity;
 import android.app.PictureInPictureParams;
 import android.util.Rational;
 import android.util.Log;
+import android.os.PowerManager;
 import android.os.Bundle;
 import android.os.Build;
 import org.apache.cordova.CordovaPlugin;
@@ -22,7 +23,11 @@ public class PIPPlugin extends CordovaPlugin {
     private CallbackContext callback = null;
 	private String TAG = "PIPPlugin";
 	private boolean hasPIPMode = false;
+	private boolean autoPIP = false;
 	
+    Double autoPipWidth = 320.00;
+    Double autoPipHeight = 240.00;
+
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
         hasPIPMode = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O; //>= SDK 26 //Oreo
@@ -37,6 +42,19 @@ public class PIPPlugin extends CordovaPlugin {
 		}
     }
     
+    @Override
+    public void onPause(boolean multitasking) {
+        super.onPause(multitasking);
+        Log.d(TAG, "autoPip " + autoPIP);
+        if(autoPIP) {
+            PowerManager pm = (PowerManager) cordova.getActivity().getSystemService(Context.POWER_SERVICE);
+            boolean isScreenOn = pm.isInteractive();
+            if(isScreenOn) {
+                enterPip(autoPipWidth, autoPipHeight, null);
+            }
+        }
+    }
+    
     @Override    
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
         if(action.equals("enter")){
@@ -46,6 +64,13 @@ public class PIPPlugin extends CordovaPlugin {
             return true;
         } else if(action.equals("isPip")){
             this.isPip(callbackContext);
+            return true;
+        } else if(action.equals("autoPip")){
+            autoPIP = args.getBoolean(0);
+            if(autoPIP) {
+                autoPipWidth = args.getDouble(1);
+                autoPipHeight = args.getDouble(2);
+            }
             return true;
         } else if(action.equals("onPipModeChanged")){
             if(callback == null){
@@ -101,7 +126,7 @@ public class PIPPlugin extends CordovaPlugin {
 				boolean active = activity.isInPictureInPictureMode(); //>= SDK 26 //Oreo
 				Log.d(TAG, "enterPip " + active);
 				if(active){
-					callbackContext.success("Already in picture-in-picture mode.");
+					if(callbackContext != null) callbackContext.success("Already in picture-in-picture mode.");
 				} else {
 					if(width != null && width > 0 && height != null && height > 0){
 						Context context = cordova.getActivity().getApplicationContext();
@@ -111,10 +136,10 @@ public class PIPPlugin extends CordovaPlugin {
 						Rational aspectRatio = new Rational(Integer.valueOf(width.intValue()), Integer.valueOf(height.intValue()));
 						pictureInPictureParamsBuilder.setAspectRatio(aspectRatio).build();
 						activity.enterPictureInPictureMode(pictureInPictureParamsBuilder.build());
-						callbackContext.success("Scaled picture-in-picture mode started.");
+						if(callbackContext != null) callbackContext.success("Scaled picture-in-picture mode started.");
 					} else {
 						activity.enterPictureInPictureMode();
-						callbackContext.success("Default picture-in-picture mode started.");
+						if(callbackContext != null) callbackContext.success("Default picture-in-picture mode started.");
 					}
 				}
             } else {
@@ -123,7 +148,7 @@ public class PIPPlugin extends CordovaPlugin {
         } catch(Exception e){
             String stackTrace = Log.getStackTraceString(e);
 			Log.d(TAG, "enterPip ERR " + stackTrace);
-            callbackContext.error(stackTrace);
+            if(callbackContext != null) callbackContext.error(stackTrace);
         }             
     }
     
