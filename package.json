@@ -1,6 +1,6 @@
 {
   "name": "tv.megacubo.pip",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "",
   "cordova": {
     "id": "tv.megacubo.pip",
@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/efoxbr/tv.megacubo.pip.git"
+    "url": "git+https://github.com/EdenwareApps/tv.megacubo.pip.git"
   },
   "keywords": [
     "ecosystem:cordova",
@@ -19,7 +19,7 @@
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/efoxbr/tv.megacubo.pip/issues"
+    "url": "https://github.com/EdenwareApps/tv.megacubo.pip/issues"
   },
-  "homepage": "https://github.com/efoxbr/tv.megacubo.pip#readme"
+  "homepage": "https://github.com/EdenwareApps/tv.megacubo.pip#readme"
 }

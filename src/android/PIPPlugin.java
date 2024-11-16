@@ -31,9 +31,6 @@ public class PIPPlugin extends CordovaPlugin {
 	private boolean hasPIPMode = false;
 	private boolean autoPIP = false;
 	
-    Double autoPipWidth = 320.00;
-    Double autoPipHeight = 240.00;
-
 	private Window window;
 	private Activity activity;
 
@@ -41,65 +38,51 @@ public class PIPPlugin extends CordovaPlugin {
         super.initialize(cordova, webView);
 		activity = cordova.getActivity();
 		window = activity.getWindow();
-        hasPIPMode = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O; //>= SDK 26 //Oreo
+        hasPIPMode = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O; //>= SDK 26 Oreo
 		if(hasPIPMode){
-			try{
+			try {
 				Class.forName("android.app.PictureInPictureParams");
-                try {
-                    Class<?> mainActivityClass = Class.forName("tv.megacubo.app.MainActivity");
-                    Method setOnUserLeaveHintCallback = mainActivityClass.getMethod("setOnUserLeaveHintCallback", Runnable.class);
-                    setOnUserLeaveHintCallback.invoke(activity, new Runnable() {
-                        @Override
-                        public void run() {
-                            if(autoPIP) {
-                                enterPip(autoPipWidth, autoPipHeight, null);
-                            }
+                pictureInPictureParamsBuilder = new PictureInPictureParams.Builder();
+                Class<?> mainActivityClass = Class.forName("tv.megacubo.app.MainActivity");
+                Method setOnUserLeaveHintCallback = mainActivityClass.getMethod("setOnUserLeaveHintCallback", Runnable.class);
+                setOnUserLeaveHintCallback.invoke(activity, new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.d(TAG, "onUserLeaveHint RECEIVED, autoPIP "+ autoPIP);
+                        if(autoPIP) {
+                            enterPip(null);
                         }
-                    });
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                    }
+                });
+                Log.d(TAG, "onUserLeaveHint callback setup");
 			} catch(Exception e) {
 				hasPIPMode = false;
                 e.printStackTrace();
-			}            
+			}
 		}
     }
-    
-    @Override
-    public void onPause(boolean multitasking) {
-        super.onPause(multitasking);
-        Log.d(TAG, "autoPip " + autoPIP);
-        if(autoPIP) {
-            enterPip(autoPipWidth, autoPipHeight, null);
-        }
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-        Log.d(TAG, "autoPip " + autoPIP);
-        if(autoPIP) {
-            enterPip(autoPipWidth, autoPipHeight, null);
-        }
-    }
-        
+            
     @Override    
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
         if(action.equals("enter")){
-            Double width = args.getDouble(0);
-            Double height = args.getDouble(1);
-            enterPip(width, height, callbackContext);
+            if(args.length() > 1) {
+                updatePipAspectRatio(args.getDouble(0), args.getDouble(1));
+            }
+            if(!autoPIP) {
+                enterPip(callbackContext);
+            } else {
+                callbackContext.error("autoPIP is enabled.");
+            }
             return true;
         } else if(action.equals("isPip")){
             this.isPip(callbackContext);
             return true;
-        } else if(action.equals("autoPip")){
+        } else if(action.equals("autoPIP")){
             autoPIP = args.getBoolean(0);
-            if(autoPIP) {
-                autoPipWidth = args.getDouble(1);
-                autoPipHeight = args.getDouble(2);
+            if(autoPIP && args.length() > 1) {
+                updatePipAspectRatio(args.getDouble(1), args.getDouble(2));
             }
+            callbackContext.success("autoPIP set to " + autoPIP);
             return true;
         } else if(action.equals("onPipModeChanged")){
             if(callback == null){
@@ -146,10 +129,26 @@ public class PIPPlugin extends CordovaPlugin {
             callback.sendPluginResult(result);
         }
     }
-    
-    private void enterPip(Double width, Double height, CallbackContext callbackContext) {
+
+    private void updatePipAspectRatio(Double width, Double height) {
         try{
-            this.initializePip();
+            if(pictureInPictureParamsBuilder != null) {
+                Rational aspectRatio = new Rational(width.intValue(), height.intValue());
+                pictureInPictureParamsBuilder.setAspectRatio(aspectRatio);
+                if(activity.isInPictureInPictureMode()){
+                    activity.setPictureInPictureParams(pictureInPictureParamsBuilder.build());
+                }
+            } else {
+                throw new Exception("Picture-in-picture unavailable.");
+            }
+        } catch(Exception e){
+            String stackTrace = Log.getStackTraceString(e);
+            Log.d(TAG, "updatePipAspectRatio ERR " + stackTrace);
+        }
+    }
+    
+    private void enterPip(CallbackContext callbackContext) {
+        try{
             if(activity.isInPictureInPictureMode()) {
                 if(callbackContext != null) callbackContext.success("Already in picture-in-picture mode.");
                 return;
@@ -166,19 +165,12 @@ public class PIPPlugin extends CordovaPlugin {
 				if(active){
 					if(callbackContext != null) callbackContext.success("Already in picture-in-picture mode.");
 				} else {
-					if(width != null && width > 0 && height != null && height > 0){
-						Context context = activity.getApplicationContext();
-						Intent openMainActivity = new Intent(context, activity.getClass());
-						openMainActivity.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-						activity.startActivityIfNeeded(openMainActivity, 0);
-						Rational aspectRatio = new Rational(Integer.valueOf(width.intValue()), Integer.valueOf(height.intValue()));
-						pictureInPictureParamsBuilder.setAspectRatio(aspectRatio).build();
-						activity.enterPictureInPictureMode(pictureInPictureParamsBuilder.build());
-						if(callbackContext != null) callbackContext.success("Scaled picture-in-picture mode started.");
-					} else {
-						activity.enterPictureInPictureMode();
-						if(callbackContext != null) callbackContext.success("Default picture-in-picture mode started.");
-					}
+                    Context context = activity.getApplicationContext();
+                    Intent openMainActivity = new Intent(context, activity.getClass());
+                    openMainActivity.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                    activity.startActivityIfNeeded(openMainActivity, 0);
+                    activity.enterPictureInPictureMode(pictureInPictureParamsBuilder.build());
+					if(callbackContext != null) callbackContext.success("Picture-in-picture mode started.");
 				}
             } else {
 				throw new Exception("Picture-in-picture unavailable.");
@@ -196,22 +188,6 @@ public class PIPPlugin extends CordovaPlugin {
 		} else {
 			callbackContext.success("false");
 		}
-    }
-    
-    private void initializePip() {
-        if(pictureInPictureParamsBuilder == null) {
-			if(hasPIPMode) {
-				try {
-					pictureInPictureParamsBuilder = new PictureInPictureParams.Builder();
-				} catch(Exception e) {
-					pictureInPictureParamsBuilder = null;
-					String stackTrace = Log.getStackTraceString(e);
-					Log.d(TAG, stackTrace);
-				}
-			} else {
-				Log.d(TAG, "PIP unavailable.");
-			}
-        }
     }
     
     public void isPip(CallbackContext callbackContext) {
