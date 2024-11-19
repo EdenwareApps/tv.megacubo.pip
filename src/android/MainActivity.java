@@ -26,8 +26,10 @@ public class MainActivity extends BridgeActivity {
     public void onPause() {
         super.onPause();
         if (onUserLeaveHintCallback != null) {
-            Log.d("PIPPlugin", "onUserLeaveHint OK");
-            onUserLeaveHintCallback.run();
+            if (!isChangingConfigurations()) { // avoid calling onUserLeaveHint when rotating the screen
+                Log.d("PIPPlugin", "onUserLeaveHint OK");
+                onUserLeaveHintCallback.run();
+            }
         } else {
             Log.d("PIPPlugin", "onUserLeaveHint NULL");
         }
