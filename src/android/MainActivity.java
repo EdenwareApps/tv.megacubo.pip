@@ -23,7 +23,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onPause() {
+    public void onPause() {
         super.onPause();
         if (onUserLeaveHintCallback != null) {
             Log.d("PIPPlugin", "onUserLeaveHint OK");
