@@ -16,7 +16,7 @@
     "ecosystem:cordova",
     "cordova-android"
   ],
-  "author": "",
+  "author": "EdenwareApps",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/EdenwareApps/tv.megacubo.pip/issues"
