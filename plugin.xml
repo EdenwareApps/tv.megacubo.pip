@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<plugin id="tv.megacubo.pip" version="0.0.6" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+<plugin id="tv.megacubo.pip" version="0.0.7" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
     <name>PIPPlugin</name>
     <js-module name="PIPPlugin" src="www/PIPPlugin.js">
         <clobbers target="PictureInPicture" />

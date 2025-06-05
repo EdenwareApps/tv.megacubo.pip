@@ -17,6 +17,9 @@ module.exports = (function (){
 	this.autoPIP = function (enable, width, height) {
 		exec(console.warn, console.error, "PIPPlugin", "autoPIP", [enable, width, height])
 	}
+	this.aspectRatio = function (width, height) {
+		exec(console.warn, console.error, "PIPPlugin", "aspectRatio", [width, height])
+	}
 	this.isPipModeSupported = function (success, error) {
 		exec(success, error, "PIPPlugin", "isPipModeSupported", [])
 	}

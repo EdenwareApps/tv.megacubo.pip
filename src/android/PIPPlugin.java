@@ -84,6 +84,10 @@ public class PIPPlugin extends CordovaPlugin {
             }
             callbackContext.success("autoPIP set to " + autoPIP);
             return true;
+        } else if(action.equals("aspectRatio")){
+            updatePipAspectRatio(args.getDouble(0), args.getDouble(1));
+            callbackContext.success("aspectRatio set to " + args.getDouble(0) + ":" + args.getDouble(1));
+            return true;
         } else if(action.equals("onPipModeChanged")){
             if(callback == null){
                 callback = callbackContext; //save global callback for later callbacks
@@ -141,7 +145,7 @@ public class PIPPlugin extends CordovaPlugin {
             } else {
                 throw new Exception("Picture-in-picture unavailable.");
             }
-        } catch(Exception e){
+        } catch(Exception e){                                         
             String stackTrace = Log.getStackTraceString(e);
             Log.d(TAG, "updatePipAspectRatio ERR " + stackTrace);
         }
