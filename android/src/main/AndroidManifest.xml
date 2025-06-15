@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <application>
+        <activity android:name="tv.megacubo.pip.PIPPlugin"
+                  android:supportsPictureInPicture="true"
+                  android:launchMode="singleTask"
+                  android:resizeableActivity="true"
+                  android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
+                  android:exported="true" />
+    </application>
+</manifest>
