@@ -1,6 +1,6 @@
 {
   "name": "tv.megacubo.pip",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "PIP plugin for Megacubo project.",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",

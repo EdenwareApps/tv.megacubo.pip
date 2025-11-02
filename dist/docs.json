@@ -1,0 +1,114 @@
+{
+  "api": {
+    "name": "PIPPlugin",
+    "slug": "pipplugin",
+    "docs": "",
+    "tags": [],
+    "methods": [
+      {
+        "name": "enter",
+        "signature": "(options?: { width?: number | undefined; height?: number | undefined; } | undefined) => Promise<{ value: string; }>",
+        "parameters": [
+          {
+            "name": "options",
+            "docs": "",
+            "type": "{ width?: number | undefined; height?: number | undefined; } | undefined"
+          }
+        ],
+        "returns": "Promise<{ value: string; }>",
+        "tags": [],
+        "docs": "",
+        "complexTypes": [],
+        "slug": "enter"
+      },
+      {
+        "name": "isPip",
+        "signature": "() => Promise<{ value: boolean; }>",
+        "parameters": [],
+        "returns": "Promise<{ value: boolean; }>",
+        "tags": [],
+        "docs": "",
+        "complexTypes": [],
+        "slug": "ispip"
+      },
+      {
+        "name": "autoPIP",
+        "signature": "(options: { value: boolean; width?: number; height?: number; }) => Promise<{ value: string; }>",
+        "parameters": [
+          {
+            "name": "options",
+            "docs": "",
+            "type": "{ value: boolean; width?: number | undefined; height?: number | undefined; }"
+          }
+        ],
+        "returns": "Promise<{ value: string; }>",
+        "tags": [],
+        "docs": "",
+        "complexTypes": [],
+        "slug": "autopip"
+      },
+      {
+        "name": "aspectRatio",
+        "signature": "(options: { width: number; height: number; }) => Promise<{ value: string; }>",
+        "parameters": [
+          {
+            "name": "options",
+            "docs": "",
+            "type": "{ width: number; height: number; }"
+          }
+        ],
+        "returns": "Promise<{ value: string; }>",
+        "tags": [],
+        "docs": "",
+        "complexTypes": [],
+        "slug": "aspectratio"
+      },
+      {
+        "name": "onPipModeChanged",
+        "signature": "() => Promise<void>",
+        "parameters": [],
+        "returns": "Promise<void>",
+        "tags": [],
+        "docs": "",
+        "complexTypes": [],
+        "slug": "onpipmodechanged"
+      },
+      {
+        "name": "isPipModeSupported",
+        "signature": "() => Promise<{ value: boolean; }>",
+        "parameters": [],
+        "returns": "Promise<{ value: boolean; }>",
+        "tags": [],
+        "docs": "",
+        "complexTypes": [],
+        "slug": "ispipmodesupported"
+      },
+      {
+        "name": "addListener",
+        "signature": "(eventName: 'onPipModeChanged', callback: (data: { value: boolean; }) => void) => Promise<void>",
+        "parameters": [
+          {
+            "name": "eventName",
+            "docs": "",
+            "type": "'onPipModeChanged'"
+          },
+          {
+            "name": "callback",
+            "docs": "",
+            "type": "(data: { value: boolean; }) => void"
+          }
+        ],
+        "returns": "Promise<void>",
+        "tags": [],
+        "docs": "",
+        "complexTypes": [],
+        "slug": "addlisteneronpipmodechanged-"
+      }
+    ],
+    "properties": []
+  },
+  "interfaces": [],
+  "enums": [],
+  "typeAliases": [],
+  "pluginConfigs": []
+}
