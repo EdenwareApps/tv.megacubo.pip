@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.PowerManager;
 import android.util.Log;
 import android.util.Rational;
+import android.view.View;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -36,8 +37,12 @@ public class PIPPlugin extends Plugin {
                     Class<?> mainActivityClass = activity.getClass();
                     java.lang.reflect.Method setCallbackMethod = mainActivityClass.getMethod("setOnUserLeaveHintCallback", Runnable.class);
                     setCallbackMethod.invoke(activity, (Runnable) () -> {
-                        if (autoPIP) {
+                        // Prevent multiple PiP entries - check if already in PiP
+                        if (autoPIP && !activity.isInPictureInPictureMode()) {
+                            Log.d(TAG, "onUserLeaveHint: Entering PiP (autoPIP enabled)");
                             enterPip(null);
+                        } else if (activity.isInPictureInPictureMode()) {
+                            Log.d(TAG, "onUserLeaveHint: Already in PiP, skipping");
                         }
                     });
                 } catch (Exception e) {
@@ -53,13 +58,16 @@ public class PIPPlugin extends Plugin {
 
     @PluginMethod
     public void enter(PluginCall call) {
+        Log.d(TAG, "enter() called from JavaScript");
         if (autoPIP) {
+            Log.d(TAG, "enter() rejected: autoPIP is enabled");
             call.reject("autoPIP is enabled.");
             return;
         }
         if (call.hasOption("width") && call.hasOption("height")) {
             updatePipAspectRatio(call.getDouble("width"), call.getDouble("height"));
         }
+        Log.d(TAG, "enter() calling enterPip()");
         enterPip(call);
     }
 
@@ -140,10 +148,33 @@ public class PIPPlugin extends Plugin {
     private void updatePipAspectRatio(double width, double height) {
         try {
             if (pictureInPictureParamsBuilder != null) {
-                Rational aspectRatio = new Rational((int) width, (int) height);
+                int w = (int) width;
+                int h = (int) height;
+                
+                // Validate aspect ratio limits (Android requires 1:2.39 to 2.39:1)
+                // Also ensure values are within reasonable bounds
+                double ratio = (double) w / h;
+                if (ratio < 0.4184) { // Less than 1:2.39
+                    Log.w(TAG, "Aspect ratio too small: " + ratio + ", clamping to minimum");
+                    h = (int) (w / 0.4184);
+                } else if (ratio > 2.39) { // Greater than 2.39:1
+                    Log.w(TAG, "Aspect ratio too large: " + ratio + ", clamping to maximum");
+                    w = (int) (h * 2.39);
+                }
+                
+                // Ensure minimum size
+                if (w <= 0) w = 240;
+                if (h <= 0) h = 240;
+                
+                Rational aspectRatio = new Rational(w, h);
                 pictureInPictureParamsBuilder.setAspectRatio(aspectRatio);
+                
+                // Update params if already in PiP mode
                 if (getActivity().isInPictureInPictureMode()) {
                     getActivity().setPictureInPictureParams(pictureInPictureParamsBuilder.build());
+                    Log.d(TAG, "Updated PiP aspect ratio: " + w + ":" + h);
+                } else {
+                    Log.d(TAG, "Prepared PiP aspect ratio: " + w + ":" + h);
                 }
             } else {
                 throw new Exception("Picture-in-picture unavailable.");
@@ -156,7 +187,10 @@ public class PIPPlugin extends Plugin {
     private void enterPip(PluginCall call) {
         try {
             Activity activity = getActivity();
+            
+            // Double check if already in PiP (prevent multiple entries)
             if (activity.isInPictureInPictureMode()) {
+                Log.d(TAG, "enterPip: Already in PiP mode, skipping");
                 if (call != null) {
                     JSObject ret = new JSObject();
                     ret.put("value", "Already in picture-in-picture mode.");
@@ -164,8 +198,10 @@ public class PIPPlugin extends Plugin {
                 }
                 return;
             }
+            
             PowerManager pm = (PowerManager) activity.getSystemService(Context.POWER_SERVICE);
             if (!pm.isInteractive()) {
+                Log.d(TAG, "enterPip: Screen is off, cannot enter PiP");
                 if (call != null) {
                     JSObject ret = new JSObject();
                     ret.put("value", "Screen is off.");
@@ -173,12 +209,107 @@ public class PIPPlugin extends Plugin {
                 }
                 return;
             }
+            
             if (pictureInPictureParamsBuilder != null) {
-                Context context = activity.getApplicationContext();
-                Intent openMainActivity = new Intent(context, activity.getClass());
-                openMainActivity.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-                activity.startActivityIfNeeded(openMainActivity, 0);
-                activity.enterPictureInPictureMode(pictureInPictureParamsBuilder.build());
+                // Ensure we have valid aspect ratio before entering
+                PictureInPictureParams params = pictureInPictureParamsBuilder.build();
+                if (params.getAspectRatio() == null) {
+                    Log.e(TAG, "enterPip: Aspect ratio is null, setting default");
+                    pictureInPictureParamsBuilder.setAspectRatio(new Rational(16, 9));
+                    params = pictureInPictureParamsBuilder.build();
+                }
+                
+                Log.d(TAG, "enterPip: Entering PiP mode");
+                
+                // Check Activity state to determine if we need to reorder
+                // In Overview mode, even if Activity appears active, we should reorder
+                // to ensure it's properly positioned before entering PiP
+                boolean shouldReorder = true;
+                try {
+                    View decorView = activity.getWindow() != null ? activity.getWindow().getDecorView() : null;
+                    boolean isResumed = activity.isResumed();
+                    boolean hasFocus = activity.hasWindowFocus();
+                    boolean isVisible = decorView != null && decorView.getVisibility() == View.VISIBLE;
+                    
+                    Log.d(TAG, "enterPip: Activity state - resumed: " + isResumed + ", hasFocus: " + hasFocus + ", visible: " + isVisible);
+                    
+                    // More conservative approach: Only skip reordering if Activity is clearly
+                    // the topmost active Activity (not just resumed/focused/visible, but actually in foreground)
+                    // In Overview, the Activity may appear active but isn't truly in foreground
+                    if (isResumed && hasFocus && isVisible) {
+                        // Additional check: verify Activity is actually topmost by checking if it's finishing
+                        // or if window is attached (truly in foreground)
+                        if (!activity.isFinishing() && activity.getWindow() != null && 
+                            activity.getWindow().getDecorView() != null &&
+                            activity.getWindow().getDecorView().isAttachedToWindow()) {
+                            Log.d(TAG, "enterPip: Activity is truly active, attempting to skip reorder");
+                            // Even if appears active, still reorder if called during pause/leaveHint
+                            // This prevents issues when entering from Overview
+                            shouldReorder = false;
+                        } else {
+                            Log.d(TAG, "enterPip: Activity appears active but window not properly attached, will reorder");
+                            shouldReorder = true;
+                        }
+                    } else {
+                        Log.d(TAG, "enterPip: Activity not fully active, will reorder");
+                        shouldReorder = true;
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "enterPip: Error checking Activity state, will reorder: " + e.getMessage());
+                    shouldReorder = true;
+                }
+                
+                if (shouldReorder) {
+                    Log.d(TAG, "enterPip: Reordering Activity to front before entering PiP");
+                    Context context = activity.getApplicationContext();
+                    Intent openMainActivity = new Intent(context, activity.getClass());
+                    openMainActivity.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                    try {
+                        int result = activity.startActivityIfNeeded(openMainActivity, 0);
+                        Log.d(TAG, "enterPip: startActivityIfNeeded result: " + result + " (0=not needed, 1=started, -1=error)");
+                        
+                        // Always add delay after reordering to allow Activity to settle
+                        // This is especially important when coming from Overview mode
+                        new android.os.Handler().postDelayed(() -> {
+                            try {
+                                Activity currentActivity = getActivity();
+                                if (currentActivity == null || currentActivity.isFinishing()) {
+                                    Log.e(TAG, "enterPip: Activity is null or finishing after delay");
+                                    if (call != null) {
+                                        call.reject("Activity is not available");
+                                    }
+                                    return;
+                                }
+                                
+                                Log.d(TAG, "enterPip: Calling enterPictureInPictureMode after reorder delay");
+                                currentActivity.enterPictureInPictureMode(params);
+                                
+                                if (call != null) {
+                                    JSObject ret = new JSObject();
+                                    ret.put("value", "Picture-in-picture mode started.");
+                                    call.resolve(ret);
+                                }
+                            } catch (Exception e) {
+                                Log.e(TAG, "enterPip: Error calling enterPictureInPictureMode after delay: " + e.getMessage());
+                                if (call != null) {
+                                    call.reject("Error entering PiP: " + e.getMessage());
+                                }
+                            }
+                        }, 150); // Increased delay to 150ms to ensure Activity is ready
+                        
+                        // Return early since we're using delayed execution
+                        return;
+                    } catch (Exception e) {
+                        Log.e(TAG, "enterPip: Error reordering Activity: " + e.getMessage());
+                        // Continue to try entering PiP directly
+                    }
+                } else {
+                    Log.d(TAG, "enterPip: Skipping reorder, Activity is active");
+                }
+                
+                Log.d(TAG, "enterPip: Calling enterPictureInPictureMode directly");
+                activity.enterPictureInPictureMode(params);
+                
                 if (call != null) {
                     JSObject ret = new JSObject();
                     ret.put("value", "Picture-in-picture mode started.");
@@ -188,7 +319,7 @@ public class PIPPlugin extends Plugin {
                 throw new Exception("Picture-in-picture unavailable.");
             }
         } catch (Exception e) {
-            Log.d(TAG, "enterPip ERR " + Log.getStackTraceString(e));
+            Log.e(TAG, "enterPip ERR " + Log.getStackTraceString(e));
             if (call != null) {
                 call.reject("Error: " + e.getMessage());
             }
